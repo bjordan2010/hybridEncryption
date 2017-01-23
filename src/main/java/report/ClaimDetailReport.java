@@ -85,28 +85,25 @@ public class ClaimDetailReport
 				.append("where invoice.InvoiceNo = ")
 				.append(invoiceNo).toString();
 			String sqlDetail = new StringBuffer()
-				.append("select vendorContract.contractNumber as Carrier, benefitplan.groupNumber as `Group Number`, ")
+				.append("select memberclaim.contractNumber as Carrier, memberclaim.groupNumber as `Group Number`, ")
 				.append("employee.generatedId, employee.clientId, employee.socialSecurityNumber as ssn, plan.employeeIdSource, ")
 				.append("employee.lastName as `Subscriber Last Name`, employee.firstName as `Subscriber First Name`, ")
 				.append("dependent.lastName as `Dependent Last Name`, dependent.firstName as `Dependent First Name`, ")
 				.append("memberclaim.transactionId as `Transaction ID`, memberclaim.dateOfService as `Date Of Service`, ")
 				.append("memberclaim.productServiceId as `Product Service ID`, memberclaim.productName as `Product Name`, ")
 				.append("memberclaim.totalAmountBilled as `Amount Billed` ")
-				.append("from invoice ")
-				.append("left outer join invoiceconfig on invoiceconfig.invoiceConfigNo = invoice.invoiceConfigNo ")
-				.append("left outer join organization on organization.organizationNo = invoiceconfig.organizationNo ")
-				.append("left outer join memberclaim on memberclaim.organizationNo = organization.organizationNo ")
+				.append("from memberclaim ")
+				.append("left outer join transactionbillingdetail on transactionbillingdetail.memberClaimNo = memberclaim.memberClaimNo ")
+				.append("left outer join transactionbillingsummary on transactionbillingsummary.transactionBillingSummaryNo = transactionbillingdetail.transactionBillingSummaryNo ")
+				.append("left outer join transactionbillingperiod on transactionbillingperiod.transactionBillingPeriodNo = transactionbillingdetail.transactionBillingPeriodNo ")
+				.append("left outer join invoice on invoice.invoicePeriodNo = transactionbillingperiod.invoicePeriodNo ")
 				.append("left outer join employee on employee.employeeNo = memberclaim.employeeNo ")
 				.append("left outer join dependent on dependent.dependentNo = memberclaim.dependentNo ")
-				.append("left outer join plan on plan.organizationNo = organization.organizationNo ")
-				.append("left outer join transactionbillingperiod on transactionbillingperiod.invoicePeriodNo = invoice.invoicePeriodNo ")
-				.append("left outer join transactionbillingsummary on transactionbillingsummary.transactionBillingPeriodNo = transactionbillingperiod.transactionBillingPeriodNo ")
-				.append("left outer join vendorContract on vendorcontract.vendorContractNo = transactionbillingsummary.vendorContractNo ")
-				.append("left outer join benefitPlan on benefitplan.benefitPlanNo = transactionbillingsummary.benefitPlanNo ")
-				.append("where memberclaim.dateofservice between transactionbillingperiod.dateFrom and transactionbillingperiod.dateTo ")
-				.append("and invoice.invoiceNo = ")
+				.append("left outer join benefitplan on benefitplan.benefitPlanNo = transactionbillingsummary.benefitPlanNo ")
+				.append("left outer join plan on plan.planNo = benefitplan.planNo ")
+				.append("where invoice.invoiceNo = ")
 				.append(invoiceNo)
-				.append(" and plan.planNo = 488 order by vendorContract.contractNumber and benefitplan.groupNumber").toString();
+				.append(" order by memberclaim.contractNumber and memberclaim.groupNumber").toString();
 
 			//Retrieve Header Data
 			meta = s.executeQuery(sqlMeta);
