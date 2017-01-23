@@ -162,23 +162,25 @@ public class ClaimDetailReport
 
 			HSSFSheet sheet = workbook.createSheet("claim_detail");
 
-			//Write header literals and values
+			//Place header literals and values
 			int row = 0;
-			HSSFRow rowhead = sheet.createRow((short) row++);
-			for (int i = 0; i < header[0].length; i++)
+			int cell = 0;
+			if (meta.next())
 			{
-				rowhead.createCell((short) i).setCellValue(header[0][i]);
-			}
-			if (meta != null)
-			{
-				while(meta.next())
-				{
-					HSSFRow arow = sheet.createRow((short) row++);
-					for (int i = 0; i < header[0].length; i++)
-					{
-						arow.createCell((short) i).setCellValue((meta.getString(header[0][i])));
-					}
-				}
+				HSSFRow rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell).setCellValue("Client Name:  " + meta.getString(header[0][0]));
+				rowhead.createCell((short) cell+13).setCellValue("Invoice Date:   " + new SimpleDateFormat("MM/dd/yyyy")
+					.format(new SimpleDateFormat("yyyy-MM-dd").parse(meta.getString(header[0][3]))));
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell+4).setCellValue("Claim Details");
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell+13).setCellValue("Period Covered");
+				row++;
+				rowhead = sheet.createRow((short) row++);
+				String period = new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meta.getString(header[0][1]))) + " to " +
+					new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meta.getString(header[0][2])));
+				rowhead.createCell((short) cell+13).setCellValue(period);
+				row++;
 			}
 			else
 			{
@@ -187,7 +189,7 @@ public class ClaimDetailReport
 			}
 
 			//Write detail literals and values
-			rowhead = sheet.createRow((short) row++);
+			HSSFRow rowhead = sheet.createRow((short) row++);
 			for (int i = 0; i < content[0].length; i++)
 			{
 				rowhead.createCell((short) i).setCellValue(content[0][i]);
@@ -200,7 +202,11 @@ public class ClaimDetailReport
 					HSSFRow arow = sheet.createRow((short) row++);
 					for (int i = 0; i < content[0].length; i++)
 					{
-						if (i == 14)
+						if (i == 11)
+						{
+							arow.createCell((short) i).setCellValue(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(detail.getString(content[0][i]))));
+						}
+						else if (i == 14)
 						{
 							arow.createCell((short) i, 0).setCellValue((detail.getDouble(content[0][i])));
 						}
@@ -220,6 +226,7 @@ public class ClaimDetailReport
 			if (dataFound)
 			{
 				//Total
+				row++;
 				HSSFRow arow = sheet.createRow((short)row);
 				arow.createCell((short)13).setCellValue("Grand Total");
 				String formula = "sum(O4:O"+(row)+")";
@@ -619,11 +626,9 @@ public class ClaimDetailReport
 						}
 						else if (j == 11)
 						{
-							SimpleDateFormat shortDate = new SimpleDateFormat("yyyy-MM-dd");
-							SimpleDateFormat longDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 							contentStream.beginText();
 							contentStream.newLineAtOffset(textx, texty);
-							contentStream.showText(shortDate.format(longDate.parse(text)));
+							contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(text)));
 							contentStream.endText();
 						}
 						else if (j == 14)
@@ -684,7 +689,7 @@ public class ClaimDetailReport
 		contentStream.endText();
 		contentStream.beginText();
 		contentStream.newLineAtOffset(margin + ("Invoice Date:".length() * cellMargin) + (cellMargin * 3), y);
-		contentStream.showText(content[1][3]);
+		contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd").parse(content[1][3])));
 		contentStream.endText();
 
 		// Centered Period Covered
@@ -694,16 +699,13 @@ public class ClaimDetailReport
 		contentStream.endText();
 
 		// Date From and Date To
-		SimpleDateFormat shortDate = new SimpleDateFormat("yyyy-MM-dd");
-		SimpleDateFormat longDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		contentStream.beginText();
 		contentStream.newLineAtOffset(margin + cellMargin, y - (rowHeight * 4));
 		if (content[1][1] == null)
 		{
-			System.err.println("Transaction Billing Period Date From cannot be null");
-			content[1][1] = "2017-01-01 00:00:00";
+			contentStream.showText("Null Date");
 		}
-		contentStream.showText(shortDate.format(longDate.parse(content[1][1])));
+		contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(content[1][1])));
 		contentStream.endText();
 		contentStream.beginText();
 		contentStream.newLineAtOffset(margin + offset, y - (rowHeight * 4));
@@ -713,10 +715,9 @@ public class ClaimDetailReport
 		contentStream.newLineAtOffset(margin + cellMargin + offset + (cellMargin * 3), y - (rowHeight * 4));
 		if (content[1][2] == null)
 		{
-			System.err.println("Transaction Billing Period Date To cannot be null");
-			content[1][2] = "2017-01-15 00:00:00";
+			contentStream.showText("Null Date");
 		}
-		contentStream.showText(shortDate.format(longDate.parse(content[1][2])));
+		contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(content[1][2])));
 		contentStream.endText();
 	}
 

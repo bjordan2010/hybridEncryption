@@ -153,23 +153,32 @@ public class ClaimSummaryReport
 
 			HSSFSheet sheet = workbook.createSheet("claim_summary");
 
-			//Write header literals and values
+			//Place header literals and values
 			int row = 0;
-			HSSFRow rowhead = sheet.createRow((short) row++);
-			for (int i = 0; i < header[0].length; i++)
+			int cell = 0;
+			if (meta.next())
 			{
-				rowhead.createCell((short) i).setCellValue(header[0][i]);
-			}
-			if (meta != null)
-			{
-				while(meta.next())
-				{
-					HSSFRow arow = sheet.createRow((short) row++);
-					for (int i = 0; i < header[0].length; i++)
-					{
-						arow.createCell((short) i).setCellValue((meta.getString(header[0][i])));
-					}
-				}
+				HSSFRow rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell).setCellValue("RxBenefits");
+				rowhead.createCell((short) cell + 4).setCellValue("For:   " + meta.getString(header[0][0]));
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell).setCellValue("P.O. Box 896503");
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell).setCellValue("Charlotte, NC 28289-6503");
+				rowhead.createCell((short) cell + 4).setCellValue("Invoice Date:   " + new SimpleDateFormat("MM/dd/yyyy")
+					.format(new SimpleDateFormat("yyyy-MM-dd").parse(meta.getString(header[0][1]))));
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell).setCellValue("1-800-334-8134");
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell + 4).setCellValue("Period Covered");
+				row++;
+				rowhead = sheet.createRow((short) row++);
+				String period = new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meta.getString(header[0][2]))) + " to " +
+					new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meta.getString(header[0][3])));
+				rowhead.createCell((short) cell+4).setCellValue(period);
+				rowhead = sheet.createRow((short) row++);
+				rowhead.createCell((short) cell).setCellValue("Administrator of:  Pharmacy Programs");
+				row++;
 			}
 			else
 			{
@@ -178,7 +187,7 @@ public class ClaimSummaryReport
 			}
 
 			//Write detail literals and values
-			rowhead = sheet.createRow((short) row++);
+			HSSFRow rowhead = sheet.createRow((short) row++);
 			for (int i = 0; i < content[0].length; i++)
 			{
 				rowhead.createCell((short) i).setCellValue(content[0][i]);
@@ -211,6 +220,7 @@ public class ClaimSummaryReport
 			if (dataFound)
 			{
 				//Total
+				row++;
 				HSSFRow arow = sheet.createRow((short)row);
 				arow.createCell((short)1).setCellValue("Grand Total");
 				String formula = "sum(C4:C"+(row)+")";
@@ -531,7 +541,7 @@ public class ClaimSummaryReport
 		contentStream.endText();
 		contentStream.beginText();
 		contentStream.newLineAtOffset(margin + ("Invoice Date:".length()*cellMargin) + (cellMargin*3), y - rowHeight*2);
-		contentStream.showText(content[1][1]);
+		contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd").parse(content[1][1])));
 		contentStream.endText();
 
 		// Centered Period Covered
@@ -541,15 +551,13 @@ public class ClaimSummaryReport
 		contentStream.endText();
 
 		// Date From and Date To
-		SimpleDateFormat shortDate = new SimpleDateFormat("yyyy-MM-dd");
-		SimpleDateFormat longDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		contentStream.beginText();
 		contentStream.newLineAtOffset(margin + cellMargin, y - (rowHeight*6));
 		if (content[1][2] == null)
 		{
 			contentStream.showText("Null Date");
 		}
-		contentStream.showText(shortDate.format(longDate.parse(content[1][2])));
+		contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(content[1][2])));
 		contentStream.endText();
 		contentStream.beginText();
 		contentStream.newLineAtOffset(margin + offset, y - (rowHeight*6));
@@ -561,7 +569,7 @@ public class ClaimSummaryReport
 		{
 			contentStream.showText("Null Date");
 		}
-		contentStream.showText(shortDate.format(longDate.parse(content[1][3])));
+		contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(content[1][3])));
 		contentStream.endText();
 	}
 

@@ -7,22 +7,20 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.text.NumberFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 /**
  * Created by bjordan on 1/20/17.
- * This class is responsible for creating the invoice in PDF or Excel format.
+ * This class is responsible for creating the invoice in PDF format.
  * The first thing it does is collect the data and for PDF combine the column names with the data values.
  * Next it uses that data to write the report.  Finally it saves the report to the file system.
  */
@@ -136,7 +134,6 @@ public class InvoiceReport
 			//Retrieve Detail Data
 			detail = s2.executeQuery(sqlDetail);
 
-			createExcelReport(meta, detail, header, content);
 			createPDFReport(meta, detail, header, content);
 		}
 		catch (Exception e)
@@ -170,110 +167,6 @@ public class InvoiceReport
 				}
 			}
 			catch (SQLException e)
-			{
-				e.printStackTrace();
-			}
-		}
-	}
-
-	private static void createExcelReport(ResultSet meta, ResultSet detail, String[][] header, String[][] content)
-	{
-		//Create Excel Report
-		boolean dataFound = false;
-		FileOutputStream fileOut = null;
-		try
-		{
-			HSSFWorkbook workbook = new HSSFWorkbook();
-
-			HSSFSheet sheet = workbook.createSheet("invoice");
-
-			//Write header literals and values
-			int row = 0;
-			HSSFRow rowhead = sheet.createRow((short) row++);
-			for (int i = 0; i < header[0].length; i++)
-			{
-				rowhead.createCell((short) i).setCellValue(header[0][i]);
-			}
-			if (meta != null)
-			{
-				while(meta.next())
-				{
-					HSSFRow arow = sheet.createRow((short) row++);
-					for (int i = 0; i < header[0].length; i++)
-					{
-						arow.createCell((short) i).setCellValue((meta.getString(header[0][i])));
-					}
-				}
-			}
-			else
-			{
-				System.err.println("No header data found.");
-				return;
-			}
-
-			//Write detail literals and values
-			rowhead = sheet.createRow((short) row++);
-			for (int i = 0; i < content[0].length; i++)
-			{
-				rowhead.createCell((short) i).setCellValue(content[0][i]);
-			}
-			if (detail != null)
-			{
-				while(detail.next())
-				{
-					dataFound = true;
-					HSSFRow arow = sheet.createRow((short) row++);
-					for (int i = 0; i < content[0].length; i++)
-					{
-						if (i == 2)
-						{
-							arow.createCell((short) i, 0).setCellValue((detail.getDouble(content[0][i])));
-						}
-						else
-						{
-							arow.createCell((short) i).setCellValue((detail.getString(content[0][i])));
-						}
-					}
-				}
-			}
-			else
-			{
-				System.err.println("No detail data found.");
-				return;
-			}
-
-			if (dataFound)
-			{
-				//Total
-				HSSFRow arow = sheet.createRow(row);
-				arow.createCell((short)0).setCellValue("Total Due This Invoice");
-				String formula = "sum(C4:C"+(row++)+")";
-				arow.createCell((short)2).setCellFormula(formula);
-				arow = sheet.createRow(row);
-				arow.createCell((short)0).setCellValue("Balance Due");
-				arow.createCell((short)2).setCellFormula(formula);
-
-				fileOut = new FileOutputStream("OriginalFiles/invoice.xls");
-				workbook.write(fileOut);
-
-				System.out.println("Excel Created.");
-			}
-		}
-		catch (Exception e)
-		{
-			System.err.println("Error writing excel file.");
-			e.printStackTrace();
-		}
-		finally
-		{
-			try
-			{
-				if (fileOut != null)
-				{
-					fileOut.close();
-				}
-			}
-			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
@@ -367,7 +260,7 @@ public class InvoiceReport
 		}
 	}
 
-	private static void createTotals(PDPageContentStream contentStream, float y) throws IOException
+	private static void createTotals(PDPageContentStream contentStream, float y) throws IOException, ParseException
 	{
 		String[] content = new String[]{"Total Due This Invoice", balanceDue.toString()};
 		drawTotalTable(contentStream, y, 368, content);
@@ -376,7 +269,7 @@ public class InvoiceReport
 	}
 
 	private static void createHeader(PDPageContentStream contentStream, PDImageXObject pdImageXObject, BufferedImage image,
-		PDPage page, String[][] invoiceMeta, String[] clientAddress, String[][] dueDate) throws IOException
+		PDPage page, String[][] invoiceMeta, String[] clientAddress, String[][] dueDate) throws IOException, ParseException
 	{
 		PDFont font = PDType1Font.HELVETICA;
 
@@ -502,7 +395,7 @@ public class InvoiceReport
 	}
 
 	private static void drawHeaderTable(PDPageContentStream contentStream, float y, float margin,
-		String[][] content) throws IOException
+		String[][] content) throws IOException, ParseException
 	{
 		final int rows = content.length;
 		final int cols = content[0].length;
@@ -536,15 +429,24 @@ public class InvoiceReport
 
 		float textx = margin + cellMargin;
 		float texty = y - 10;
-		for (String[] aContent : content)
+		for (int i = 0; i < content.length; i++)
 		{
-			for (String text : aContent)
+			String[] aContent = content[i];
+			for (int j = 0; j < aContent.length; j++)
 			{
+				String text = aContent[j];
 				if (text != null)
 				{
 					contentStream.beginText();
 					contentStream.newLineAtOffset(textx, texty);
-					contentStream.showText(text);
+					if (i == 1 && j == 0)
+					{
+						contentStream.showText(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd").parse(text)));
+					}
+					else
+					{
+						contentStream.showText(text);
+					}
 					contentStream.endText();
 				}
 				textx += colWidth;
