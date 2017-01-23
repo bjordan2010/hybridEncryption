@@ -191,7 +191,14 @@ public class ClaimSummaryReport
 					HSSFRow arow = sheet.createRow((short) row++);
 					for (int i = 0; i < content[0].length; i++)
 					{
-						arow.createCell((short) i).setCellValue((detail.getString(content[0][i])));
+						if (i > 1 && i < 5)
+						{
+							arow.createCell((short) i, 0).setCellValue((detail.getDouble(content[0][i])));
+						}
+						else
+						{
+							arow.createCell((short) i).setCellValue((detail.getString(content[0][i])));
+						}
 					}
 				}
 			}
