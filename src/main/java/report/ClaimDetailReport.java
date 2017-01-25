@@ -6,9 +6,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.FillPatternType;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -161,6 +161,18 @@ public class ClaimDetailReport
 			HSSFWorkbook workbook = new HSSFWorkbook();
 
 			HSSFSheet sheet = workbook.createSheet("claim_detail");
+			sheet.setColumnWidth(0, 3072);  //12
+			sheet.setColumnWidth(1, 4096);  //16
+			sheet.setColumnWidth(2, 3072);  //12
+			sheet.setColumnWidth(3, 4352);  //17
+			sheet.setColumnWidth(4, 4352);  //17
+			sheet.setColumnWidth(5, 4352);  //17
+			sheet.setColumnWidth(6, 4352);  //17
+			sheet.setColumnWidth(7, 3072);  //12
+			sheet.setColumnWidth(8, 3072);  //12
+			sheet.setColumnWidth(9, 3840);  //15
+			sheet.setColumnWidth(10, 3072); //12
+			sheet.setColumnWidth(11, 3072); //12
 
 			//Place header literals and values
 			int row = 0;
@@ -169,17 +181,17 @@ public class ClaimDetailReport
 			{
 				HSSFRow rowhead = sheet.createRow((short) row++);
 				rowhead.createCell((short) cell).setCellValue("Client Name:  " + meta.getString(header[0][0]));
-				rowhead.createCell((short) cell+13).setCellValue("Invoice Date:   " + new SimpleDateFormat("MM/dd/yyyy")
+				rowhead.createCell((short) cell+10).setCellValue("Invoice Date:   " + new SimpleDateFormat("MM/dd/yyyy")
 					.format(new SimpleDateFormat("yyyy-MM-dd").parse(meta.getString(header[0][3]))));
 				rowhead = sheet.createRow((short) row++);
-				rowhead.createCell((short) cell+4).setCellValue("Claim Details");
+				rowhead.createCell((short) cell+5).setCellValue("Claim Details");
 				rowhead = sheet.createRow((short) row++);
-				rowhead.createCell((short) cell+13).setCellValue("Period Covered");
+				rowhead.createCell((short) cell+10).setCellValue("Period Covered");
 				row++;
 				rowhead = sheet.createRow((short) row++);
 				String period = new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meta.getString(header[0][1]))) + " to " +
 					new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(meta.getString(header[0][2])));
-				rowhead.createCell((short) cell+13).setCellValue(period);
+				rowhead.createCell((short) cell+10).setCellValue(period);
 				row++;
 			}
 			else
@@ -189,30 +201,140 @@ public class ClaimDetailReport
 			}
 
 			//Write detail literals and values
+			HSSFCellStyle style = workbook.createCellStyle();
+			style.setFillPattern((short) FillPatternType.FINE_DOTS.ordinal());
+			style.setFillBackgroundColor(HSSFColor.GREY_25_PERCENT.index);
+			style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+			style.setBorderBottom(HSSFCellStyle.BORDER_MEDIUM);
+			style.setBorderRight(HSSFCellStyle.BORDER_MEDIUM);
+			style.setBorderTop(HSSFCellStyle.BORDER_MEDIUM);
+			style.setBorderLeft(HSSFCellStyle.BORDER_MEDIUM);
 			HSSFRow rowhead = sheet.createRow((short) row++);
 			for (int i = 0; i < content[0].length; i++)
 			{
-				rowhead.createCell((short) i).setCellValue(content[0][i]);
+				if (i > 2 && i < 6)
+				{
+					continue;
+				}
+				if (i == 2)
+				{
+					HSSFCell acell = rowhead.createCell((short) i);
+					acell.setCellValue("Member ID");
+					acell.setCellStyle(style);
+				}
+				else if (i < 2)
+				{
+					HSSFCell acell = rowhead.createCell((short) i);
+					acell.setCellValue(content[0][i]);
+					acell.setCellStyle(style);
+				}
+				else
+				{
+					HSSFCell acell = rowhead.createCell((short) i-3);
+					acell.setCellValue(content[0][i]);
+					acell.setCellStyle(style);
+				}
 			}
 			if (detail != null)
 			{
+				style = workbook.createCellStyle();
+				style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+				String generatedId = null;
+				String clientId = null;
+				String ssn = null;
+				String employeeIdSource = null;
 				while(detail.next())
 				{
 					dataFound = true;
 					HSSFRow arow = sheet.createRow((short) row++);
 					for (int i = 0; i < content[0].length; i++)
 					{
-						if (i == 11)
+						if (i == 2)
 						{
-							arow.createCell((short) i).setCellValue(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(detail.getString(content[0][i]))));
+							generatedId = detail.getString(content[0][i]);
+						}
+						else if (i == 3)
+						{
+							clientId = detail.getString(content[0][i]);
+						}
+						else if (i == 4)
+						{
+							ssn = detail.getString(content[0][i]);
+						}
+						else if (i == 5)
+						{
+							employeeIdSource = detail.getString(content[0][i]);
+							switch (Integer.parseInt(employeeIdSource.trim()))
+							{
+								case 0:
+									if (ssn != null)
+									{
+										HSSFCell acell = arow.createCell((short) 2);
+										acell.setCellValue(ssn);
+										acell.setCellStyle(style);
+									}
+									break;
+								case 1:
+									if (generatedId != null)
+									{
+										HSSFCell acell = arow.createCell((short) 2);
+										acell.setCellValue(generatedId);
+										acell.setCellStyle(style);
+									}
+									break;
+								case 2:
+									if (clientId != null)
+									{
+										HSSFCell acell = arow.createCell((short) 2);
+										acell.setCellValue(clientId);
+										acell.setCellStyle(style);
+									}
+									break;
+								case 3:
+									if (clientId != null && generatedId != null)
+									{
+										HSSFCell acell = arow.createCell((short) 2);
+										acell.setCellValue(clientId + generatedId);
+										acell.setCellStyle(style);
+									}
+									break;
+								default:
+									HSSFCell acell = arow.createCell((short) 2);
+									acell.setCellValue("Invalid");
+									acell.setCellStyle(style);
+									break;
+							}
+						}
+						else if (i == 11)
+						{
+							HSSFCell acell = arow.createCell((short) i-3);
+							acell.setCellValue(new SimpleDateFormat("MM/dd/yyyy").format(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(detail.getString(content[0][i]))));
+							acell.setCellStyle(style);
 						}
 						else if (i == 14)
 						{
-							arow.createCell((short) i, 0).setCellValue((detail.getDouble(content[0][i])));
+							style = workbook.createCellStyle();
+							style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+							style.setDataFormat((short) 8);
+							HSSFCell acell = arow.createCell((short) i-3, 0);
+							acell.setCellValue((detail.getDouble(content[0][i])));
+							acell.setCellStyle(style);
+						}
+						else if (i < 2)
+						{
+							style = workbook.createCellStyle();
+							style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+							HSSFCell acell = arow.createCell((short) i);
+							acell.setCellValue((detail.getString(content[0][i])));
+							acell.setCellStyle(style);
 						}
 						else
 						{
-							arow.createCell((short) i).setCellValue((detail.getString(content[0][i])));
+							style = workbook.createCellStyle();
+							style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+							HSSFCell acell = arow.createCell((short) i-3);
+							acell.setCellValue((detail.getString(content[0][i])));
+							acell.setCellStyle(style);
 						}
 					}
 				}
@@ -226,11 +348,20 @@ public class ClaimDetailReport
 			if (dataFound)
 			{
 				//Total
+				style = workbook.createCellStyle();
+				style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
 				row++;
 				HSSFRow arow = sheet.createRow((short)row);
-				arow.createCell((short)13).setCellValue("Grand Total");
-				String formula = "sum(O4:O"+(row)+")";
-				arow.createCell((short)14).setCellFormula(formula);
+				HSSFCell acell = arow.createCell((short)10);
+				acell.setCellValue("Grand Total");
+				acell.setCellStyle(style);
+				String formula = "sum(L4:L"+(row)+")";
+				style = workbook.createCellStyle();
+				style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+				style.setDataFormat((short) 8);
+				acell = arow.createCell((short)11);
+				acell.setCellFormula(formula);
+				acell.setCellStyle(style);
 
 				fileOut = new FileOutputStream("OriginalFiles/claim_detail.xls");
 				workbook.write(fileOut);

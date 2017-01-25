@@ -7,9 +7,9 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
-import org.apache.poi.hssf.usermodel.HSSFRow;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.hssf.usermodel.*;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.FillPatternType;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -152,6 +152,11 @@ public class ClaimSummaryReport
 			HSSFWorkbook workbook = new HSSFWorkbook();
 
 			HSSFSheet sheet = workbook.createSheet("claim_summary");
+			sheet.setColumnWidth(0, 3072);  //12
+			sheet.setColumnWidth(1, 4096);  //16
+			sheet.setColumnWidth(2, 3072);  //12
+			sheet.setColumnWidth(3, 3840);  //15
+			sheet.setColumnWidth(4, 3840);  //15
 
 			//Place header literals and values
 			int row = 0;
@@ -187,10 +192,20 @@ public class ClaimSummaryReport
 			}
 
 			//Write detail literals and values
+			HSSFCellStyle style = workbook.createCellStyle();
+			style.setFillPattern((short) FillPatternType.FINE_DOTS.ordinal());
+			style.setFillBackgroundColor(HSSFColor.GREY_25_PERCENT.index);
+			style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+			style.setBorderBottom(HSSFCellStyle.BORDER_MEDIUM);
+			style.setBorderRight(HSSFCellStyle.BORDER_MEDIUM);
+			style.setBorderTop(HSSFCellStyle.BORDER_MEDIUM);
+			style.setBorderLeft(HSSFCellStyle.BORDER_MEDIUM);
 			HSSFRow rowhead = sheet.createRow((short) row++);
 			for (int i = 0; i < content[0].length; i++)
 			{
-				rowhead.createCell((short) i).setCellValue(content[0][i]);
+				HSSFCell acell = rowhead.createCell((short) i);
+				acell.setCellValue(content[0][i]);
+				acell.setCellStyle(style);
 			}
 			if (detail != null)
 			{
@@ -200,13 +215,23 @@ public class ClaimSummaryReport
 					HSSFRow arow = sheet.createRow((short) row++);
 					for (int i = 0; i < content[0].length; i++)
 					{
-						if (i > 1 && i < 5)
+						style = workbook.createCellStyle();
+						style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+						if (i > 1 && i < 6)
 						{
-							arow.createCell((short) i, 0).setCellValue((detail.getDouble(content[0][i])));
+							if (i > 2)
+							{
+								style.setDataFormat((short) 8); //currency
+							}
+							HSSFCell acell = arow.createCell((short) i, 0);
+							acell.setCellStyle(style);
+							acell.setCellValue((detail.getDouble(content[0][i])));
 						}
 						else
 						{
-							arow.createCell((short) i).setCellValue((detail.getString(content[0][i])));
+							HSSFCell acell = arow.createCell((short) i);
+							acell.setCellStyle(style);
+							acell.setCellValue((detail.getString(content[0][i])));
 						}
 					}
 				}
@@ -221,14 +246,27 @@ public class ClaimSummaryReport
 			{
 				//Total
 				row++;
+				style = workbook.createCellStyle();
+				style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
 				HSSFRow arow = sheet.createRow((short)row);
-				arow.createCell((short)1).setCellValue("Grand Total");
+				HSSFCell acell = arow.createCell((short)1);
+				acell.setCellStyle(style);
+				acell.setCellValue("Grand Total");
 				String formula = "sum(C4:C"+(row)+")";
-				arow.createCell((short)2).setCellFormula(formula);
+				acell = arow.createCell((short)2);
+				acell.setCellStyle(style);
+				acell.setCellFormula(formula);
 				formula = "sum(D4:D"+(row)+")";
-				arow.createCell((short)3).setCellFormula(formula);
+				acell = arow.createCell((short)3);
+				style = workbook.createCellStyle();
+				style.setAlignment(HSSFCellStyle.ALIGN_CENTER);
+				style.setDataFormat((short) 8);  //currency
+				acell.setCellStyle(style);
+				acell.setCellFormula(formula);
 				formula = "sum(E4:E"+(row)+")";
-				arow.createCell((short)4).setCellFormula(formula);
+				acell = arow.createCell((short)4);
+				acell.setCellStyle(style);
+				acell.setCellFormula(formula);
 
 				fileOut = new FileOutputStream("OriginalFiles/claim_summary.xls");
 				workbook.write(fileOut);
